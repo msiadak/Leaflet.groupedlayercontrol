@@ -39,7 +39,8 @@ L.Control.GroupedLayers = L.Control.extend({
 
     map
         .on('layeradd', this._onLayerChange, this)
-        .on('layerremove', this._onLayerChange, this);
+        .on('layerremove', this._onLayerChange, this)
+        .on('zoomend', this._checkDisabledLayers, this);
 
     return this._container;
   },
@@ -47,7 +48,8 @@ L.Control.GroupedLayers = L.Control.extend({
   onRemove: function (map) {
     map
         .off('layeradd', this._onLayerChange)
-        .off('layerremove', this._onLayerChange);
+        .off('layerremove', this._onLayerChange)
+        .off('zoomend', this._checkDisabledLayers);
   },
 
   addBaseLayer: function (layer, name) {
@@ -277,7 +279,8 @@ L.Control.GroupedLayers = L.Control.extend({
     }
 
     container.appendChild(label);
-
+    
+    this._checkDisabledLayers();
     return label;
   },
   
@@ -343,6 +346,22 @@ L.Control.GroupedLayers = L.Control.extend({
       }
     }
     return -1;
+  },
+
+  _checkDisabledLayers: function () {
+    var inputs = this._form.getElementsByTagName('input'),
+        input,
+        layer,
+        zoom = this._map.getZoom();
+
+    for (var i = inputs.length - 1; i >= 0; i--) {
+      input = inputs[i];
+      layer = this._layers[input.layerId].layer;
+      if (layer.hasOwnProperty('options')) {
+        input.disabled = (layer.options.minZoom !== undefined && zoom < layer.options.minZoom) ||
+                         (layer.options.maxZoom !== undefined && zoom > layer.options.maxZoom);
+      }
+    }
   }
 });
 
