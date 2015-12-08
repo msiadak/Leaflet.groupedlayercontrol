@@ -1,7 +1,13 @@
 /* global L */
 
-// A layer control which provides for layer groupings.
-// Author: Ishmael Smyrnow
+var _ = {
+  set: require('lodash.set'),
+  get: require('lodash.get'),
+  slice: require('lodash.slice'),
+  has: require('lodash.has'),
+  last: require('lodash.last')
+}
+
 L.Control.GroupedLayers = L.Control.extend({
 
   options: {
@@ -38,8 +44,6 @@ L.Control.GroupedLayers = L.Control.extend({
     this._update();
 
     map
-        .on('layeradd', this._onLayerChange, this)
-        .on('layerremove', this._onLayerChange, this)
         .on('zoomend', this._checkDisabledLayers, this);
 
     return this._container;
@@ -47,15 +51,12 @@ L.Control.GroupedLayers = L.Control.extend({
 
   onRemove: function (map) {
     map
-        .off('layeradd', this._onLayerChange)
-        .off('layerremove', this._onLayerChange)
-        .off('zoomend', this._checkDisabledLayers);
+        .off('zoomend', this._checkDisabledLayers, this);
   },
 
   addBaseLayer: function (layer, name) {
     this._addLayer(layer, name);
-    this._update();
-    return this;
+    return this._update();
   },
 
   addOverlay: function (layer, name, group) {
@@ -65,10 +66,10 @@ L.Control.GroupedLayers = L.Control.extend({
   },
 
   removeLayer: function (layer) {
-    var id = L.Util.stamp(layer);
-    delete this._layers[id];
-    this._update();
-    return this;
+    layer.off('add remove', this._onLayerChange, this);
+
+    delete this._layers[L.stamp(layer)];
+    return this._update();
   },
 
   _initLayout: function () {
@@ -120,7 +121,8 @@ L.Control.GroupedLayers = L.Control.extend({
   },
 
   _addLayer: function (layer, name, group, overlay) {
-    var id = L.Util.stamp(layer);
+    layer.on('add remove', this._onLayerChange, this);
+    var id = L.stamp(layer);
 
     this._layers[id] = {
       layer: layer,
@@ -173,13 +175,10 @@ L.Control.GroupedLayers = L.Control.extend({
   },
 
   _onLayerChange: function (e) {
-    var obj = this._layers[L.Util.stamp(e.layer)];
-
-    if (!obj) { return; }
-
     if (!this._handlingClick) {
       this._update();
     }
+    var obj = this._layers[L.stamp(e.target)];
 
     var type = obj.overlay ?
       (e.type === 'layeradd' ? 'overlayadd' : 'overlayremove') :
@@ -209,7 +208,8 @@ L.Control.GroupedLayers = L.Control.extend({
     var label = document.createElement('label'),
         input,
         checked = this._map.hasLayer(obj.layer),
-        container;
+        container,
+        layerId = L.stamp(obj.layer);
 
     if (obj.overlay) {
       if (obj.group.exclusive) {
@@ -225,7 +225,7 @@ L.Control.GroupedLayers = L.Control.extend({
       input = this._createRadioElement('leaflet-base-layers', checked);
     }
 
-    input.layerId = L.Util.stamp(obj.layer);
+    input.layerId = layerId;
     input.groupID = obj.group.id;
     L.DomEvent.on(input, 'click', this._onInputClick, this);
 
@@ -234,6 +234,47 @@ L.Control.GroupedLayers = L.Control.extend({
 
     label.appendChild(input);
     label.appendChild(name);
+
+    if (_.has(obj.layer.options, 'filter')) {
+      var filter = obj.layer.options.filter,
+          values = filter.values,
+          select = document.createElement('select'),
+          filterSpan = document.createElement('span');
+          filterIcon = document.createElement('i'),
+          cancelIcon = document.createElement('i'),
+          selectSpan = document.createElement('span');
+      
+      filterIcon.className = 'icon ion-funnel leaflet-control-layers-filter-icon';
+      cancelIcon.className = 'icon ion-android-cancel leaflet-control-layers-filter-cancel';
+      select.className = 'leaflet-control-layers-filter-select';
+      select.layerId = layerId;
+      selectSpan.className = 'leaflet-control-layers-filter-select-container-hidden';
+      
+      if (values.indexOf('') === -1) {
+        values.unshift('');
+      }
+      for (var i=0; i < values.length; i++) {
+        var option = document.createElement('option');
+        option.value = option.innerHTML = values[i];
+        if (option.value === '') {
+          option.selected = true;
+          option.className = 'leaflet-control-layers-filter-option-null';
+          if (filter.nullPrompt) {
+            option.innerHTML = filter.nullPrompt;
+          }
+        }
+        select.appendChild(option);
+      }
+      
+      selectSpan.appendChild(select);
+      selectSpan.appendChild(cancelIcon);
+      filterSpan.appendChild(filterIcon);
+      filterSpan.appendChild(selectSpan);
+
+      L.DomEvent.on(select, 'change', this._onFilterChange, this);
+      L.DomEvent.on(filterIcon, 'click', this._onFilterIconClick, this);
+      L.DomEvent.on(cancelIcon, 'click', this._onFilterCancelIconClick, this);
+    }
 
     if (obj.overlay) {
       container = this._overlaysList;
@@ -279,11 +320,92 @@ L.Control.GroupedLayers = L.Control.extend({
     }
 
     container.appendChild(label);
+    if (filterSpan) {
+      container.appendChild(filterSpan);
+    }
     
     this._checkDisabledLayers();
     return label;
   },
   
+  _onFilterIconClick: function (e) {
+    var icon = e.target,
+        span = filterIcon.nextSibling,
+        select = span.querySelector('select'),
+        layer = this._layers[select.layerId].layer,
+        filter = layer.options.filter;
+    span.className = 'leaflet-control-layers-filter-select-container';
+    icon.className = 'leaflet-control-layers-filter-icon-hidden';
+
+    this._onFilterChange(e);
+    L.DomEvent.stopPropagation(e);
+  },
+
+  _onFilterCancelIconClick: function (e) {
+    var cancelIcon = e.target,
+        span = cancelIcon.parentNode,
+        icon = span.previousSibling,
+        select = span.querySelector('select'),
+        layer = this._layers[select.layerId].layer;
+    
+    icon.className = 'leaflet-control-layers-filter-icon icon ion-funnel';
+    span.className = 'leaflet-control-layers-filter-select-container-hidden';
+    
+    this._cancelFilter(layer);
+    L.DomEvent.stopPropagation(e);
+  },
+  
+  _onFilterChange: function (e) {
+    var selects = this._form.getElementsByTagName('select');
+
+    for (var i=0; i < selects.length; i++) {
+      var select = selects[i];
+      if (select.className === 'leaflet-control-layers-filter-select') {
+        var layer = this._layers[select.layerId].layer,
+            filter = layer.options.filter,
+            selectedOption = select.options[select.selectedIndex],
+            selectedValue = selectedOption.value; 
+        if (selectedValue === '') {
+          filter.selected = null;
+          this._cancelFilter(layer);
+        } 
+        else if (filter.selected !== selectedValue || !_.has(filter, 'selected')) {
+          filter.selected = selectedValue;
+          this._applyFilter(layer);
+        } else {
+          this._applyFilter(layer);
+        }
+        if (_.has(selectedOption, 'classname')) {
+          L.DomUtil.addClass(selectedOption.className);
+        }
+      }
+    }
+
+    L.DomEvent.stopPropagation(e);
+  },
+
+  _applyFilter: function(layer) {
+    var filter = layer.options.filter,
+        targetProperty = filter.targetProperty,
+        template = filter.template,
+        values = filter.values,
+        selected = filter.selected;
+
+    _.set(layer, targetProperty, template.replace('{0}', selected));
+    filter._applied = true;
+    layer.redraw();
+  },
+
+  _cancelFilter: function(layer) {
+    var filter = layer.options.filter;
+        targetProperty = filter.targetProperty;
+
+    this._deleteNestedProperty(layer, targetProperty);
+    console.log(layer.wmsParams);
+    filter._applied = false;
+    layer.redraw();
+  },
+
   _onGroupInputClick: function () {
     var i, input, obj;
     
@@ -331,6 +453,7 @@ L.Control.GroupedLayers = L.Control.extend({
     this._handlingClick = false;
   },
 
+
   _expand: function () {
     L.DomUtil.addClass(this._container, 'leaflet-control-layers-expanded');
   },
@@ -353,16 +476,24 @@ L.Control.GroupedLayers = L.Control.extend({
         input,
         layer,
         zoom = this._map.getZoom();
-
+   
     for (var i = inputs.length - 1; i >= 0; i--) {
       input = inputs[i];
       layer = this._layers[input.layerId].layer;
-      if (layer.hasOwnProperty('options')) {
+      if (_.has(layer, 'options')) {
         input.disabled = (layer.options.minZoom !== undefined && zoom < layer.options.minZoom) ||
                          (layer.options.maxZoom !== undefined && zoom > layer.options.maxZoom);
       }
     }
-  }
+  },
+
+  _deleteNestedProperty: function(object, path) {
+    path = path.split('.');
+    object = path.length == 1 ? object : _.get(object, _.slice(path, 0, -1));
+    var key = _.last(path);
+    return (object != null && _.has(object, key)) ? delete object[key] : true;
+  },
+
 });
 
 L.control.groupedLayers = function (baseLayers, groupedOverlays, options) {

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Basic Example</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-1.0.0-b1/leaflet.css" />
+  <link rel="stylesheet" href="../src/leaflet.groupedlayercontrol.css" />
+  <link rel="stylesheet" href="../node_modules/ionicons/css/ionicons.css" />
+  <style>
+    html, body, #map {
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="http://cdn.leafletjs.com/leaflet-1.0.0-b1/leaflet-src.js"></script>
+  <script src="../build/leaflet.groupedlayercontrol.bundle.js"></script>
+  <script src="exampledata.js"></script>
+  <script>
+    var map = L.map('map', {
+      center: [41, -91],
+      zoom: 13,
+      layers: [ExampleData.Basemaps.Grayscale, ExampleData.LayerGroups.cities]
+    });
+
+    // Overlay layers are grouped
+    var basemaps = ExampleData.Basemaps;
+
+    var groupedOverlays = {
+        'Wetlands': {
+            'NWI': L.tileLayer.wms('http://107.20.228.18/arcgis/services/Wetlands/MapServer/WMSServer', {
+                layers: '1',
+                format: 'image/png',
+                transparent: true,
+                opacity: 0.75,
+                tiled: true,
+                pane: 'overlayPane',
+                filter: {
+                    targetProperty: 'wmsParams.layerDefs',
+                    template: '{"1":"WETLAND_TYPE=\'{0}\'"}',
+                    values: [
+                        'Freshwater Emergent Wetland',
+                        'Freshwater Forested/Shrub Wetland',
+                        'Freshwater Pond',
+                        'Lake',
+                        'Other',
+                        'Riverine'
+                    ],
+                    nullPrompt: 'Select a wetland type',
+                }
+            }),
+            'NWI (prefiltered)': L.tileLayer.wms('http://107.20.228.18/arcgis/services/Wetlands/MapServer/WMSServer', {
+                layers: '1',
+                format: 'image/png',
+                transparent: true,
+                opacity: 0.75,
+                tiled: true,
+                pane: 'overlayPane',
+                layerDefs: '{"1":"WETLAND_TYPE=\'Riverine\'"}'
+            })
+        }
+    };
+    // Use the custom grouped layer control, not "L.control.layers"
+    var glc = L.control.groupedLayers(ExampleData.Basemaps, groupedOverlays, {
+        collapsed: false,
+    }).addTo(map);
+  </script>
+</body>
+</html>

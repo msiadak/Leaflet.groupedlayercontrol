@@ -7,3 +7,35 @@
 .leaflet-control-layers-group {
   margin-bottom: .5em;
 }
+
+.leaflet-control-layers-filter-container {
+
+}
+
+.leaflet-control-layers-filter-select-container {
+  font-size: 8pt;
+}
+
+.leaflet-control-layers-filter-select-container-hidden {
+  display: none;
+}
+
+.leaflet-control-layers-filter-icon {
+  font-size: 12pt;
+}
+
+.leaflet-control-layers-filter-icon-hidden {
+  display: none;
+}
+
+.leaflet-control-layers-filter-cancel {
+  font-size: 12pt;
+}
+
+.leaflet-control-layers-filter-select {
+  font-size: 8pt;
+}
+
+.leaflet-control-layers-filter-option-null {
+  color: gray;
+}

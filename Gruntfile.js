@@ -5,6 +5,15 @@ module.exports = function(grunt) {
 
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
+    eslint: {
+      target: 'src/*.js'
+    },
+    browserify: {
+      build: {
+        src: 'src/*.js',
+        dest: 'build/leaflet.groupedlayercontrol.bundle.js',
+      }
+    },
     uglify: {
       options: {
         banner: banner,
@@ -13,7 +22,7 @@ module.exports = function(grunt) {
       },
       dist: {
         files: {
-          'dist/leaflet.groupedlayercontrol.min.js': 'src/leaflet.groupedlayercontrol.js'
+          'dist/leaflet.groupedlayercontrol.min.js': 'build/leaflet.groupedlayercontrol.bundle.js'
         }
       }
     },
@@ -33,5 +42,5 @@ module.exports = function(grunt) {
     }
   });
 
-  grunt.registerTask('default', ['uglify', 'cssmin']);
+  grunt.registerTask('default', ['browserify', 'uglify', 'cssmin']);
 };
