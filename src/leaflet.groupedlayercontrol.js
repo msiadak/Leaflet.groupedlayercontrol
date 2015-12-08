@@ -248,6 +248,7 @@ L.Control.GroupedLayers = L.Control.extend({
       cancelIcon.className = 'icon ion-android-cancel leaflet-control-layers-filter-cancel';
       select.className = 'leaflet-control-layers-filter-select';
       select.layerId = layerId;
+      filterSpan.className = 'leaflet-control-layers-filter-container';
       selectSpan.className = 'leaflet-control-layers-filter-select-container-hidden';
       
       if (values.indexOf('') === -1) {
@@ -321,7 +322,7 @@ L.Control.GroupedLayers = L.Control.extend({
 
     container.appendChild(label);
     if (filterSpan) {
-      container.appendChild(filterSpan);
+      label.appendChild(filterSpan);
     }
     
     this._checkDisabledLayers();
