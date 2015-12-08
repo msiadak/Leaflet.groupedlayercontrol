@@ -401,7 +401,6 @@ L.Control.GroupedLayers = L.Control.extend({
         targetProperty = filter.targetProperty;
 
     this._deleteNestedProperty(layer, targetProperty);
-    console.log(layer.wmsParams);
     filter._applied = false;
     layer.redraw();
   },
