@@ -35,7 +35,6 @@
     "grunt-eslint": "^17.3.1",
     "ionicons": "^2.0.1",
     "load-grunt-tasks": "^3.1.0",
-    "lodash": "file:..\\lodash",
     "lodash.get": "^3.7.0",
     "lodash.has": "^3.2.1",
     "lodash.last": "^3.0.0",
