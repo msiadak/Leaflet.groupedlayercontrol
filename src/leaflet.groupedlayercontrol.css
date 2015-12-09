@@ -9,7 +9,8 @@
 }
 
 .leaflet-control-layers-filter-container {
-
+  margin-left: .5em;
+  vertical-align: middle;
 }
 
 .leaflet-control-layers-filter-select-container {
@@ -30,12 +31,25 @@
 
 .leaflet-control-layers-filter-cancel {
   font-size: 12pt;
+  margin-left: .5em;
 }
 
 .leaflet-control-layers-filter-select {
   font-size: 8pt;
 }
 
+.leaflet-control-layers-filter-option {
+  color: black;
+}
+
 .leaflet-control-layers-filter-option-null {
   color: gray;
+}
+
+.leaflet-control-layers-row-container {
+  display: block;
+}
+
+.leaflet-control-layers label {
+  display: inline;
 }

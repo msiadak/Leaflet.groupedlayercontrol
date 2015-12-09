@@ -209,6 +209,7 @@ L.Control.GroupedLayers = L.Control.extend({
         input,
         checked = this._map.hasLayer(obj.layer),
         container,
+        rowContainer = document.createElement('div'),
         layerId = L.stamp(obj.layer);
 
     if (obj.overlay) {
@@ -231,7 +232,9 @@ L.Control.GroupedLayers = L.Control.extend({
 
     var name = document.createElement('span');
     name.innerHTML = ' ' + obj.name;
-
+    
+    rowContainer.className = 'leaflet-control-layers-row-container';
+    label.className = 'leaflet-control-layers-label';
     label.appendChild(input);
     label.appendChild(name);
 
@@ -247,6 +250,7 @@ L.Control.GroupedLayers = L.Control.extend({
       filterIcon.className = 'icon ion-funnel leaflet-control-layers-filter-icon';
       cancelIcon.className = 'icon ion-android-cancel leaflet-control-layers-filter-cancel';
       select.className = 'leaflet-control-layers-filter-select';
+      L.DomUtil.addClass(select, 'leaflet-control-layers-filter-option-null');
       select.layerId = layerId;
       filterSpan.className = 'leaflet-control-layers-filter-container';
       selectSpan.className = 'leaflet-control-layers-filter-select-container-hidden';
@@ -263,6 +267,8 @@ L.Control.GroupedLayers = L.Control.extend({
           if (filter.nullPrompt) {
             option.innerHTML = filter.nullPrompt;
           }
+        } else {
+          option.className = 'leaflet-control-layers-filter-option';
         }
         select.appendChild(option);
       }
@@ -275,6 +281,8 @@ L.Control.GroupedLayers = L.Control.extend({
       L.DomEvent.on(select, 'change', this._onFilterChange, this);
       L.DomEvent.on(filterIcon, 'click', this._onFilterIconClick, this);
       L.DomEvent.on(cancelIcon, 'click', this._onFilterCancelIconClick, this);
+
+      L.DomEvent.disableClickPropagation(filterSpan);
     }
 
     if (obj.overlay) {
@@ -320,13 +328,15 @@ L.Control.GroupedLayers = L.Control.extend({
       container = this._baseLayersList;
     }
 
-    container.appendChild(label);
+    rowContainer.appendChild(label);
     if (filterSpan) {
-      label.appendChild(filterSpan);
+      rowContainer.appendChild(filterSpan);
     }
     
+    container.appendChild(rowContainer);
+
     this._checkDisabledLayers();
-    return label;
+    return rowContainer;
   },
   
   _onFilterIconClick: function (e) {
@@ -361,7 +371,7 @@ L.Control.GroupedLayers = L.Control.extend({
 
     for (var i=0; i < selects.length; i++) {
       var select = selects[i];
-      if (select.className === 'leaflet-control-layers-filter-select') {
+      if (L.DomUtil.hasClass(select, 'leaflet-control-layers-filter-select')) {
         var layer = this._layers[select.layerId].layer,
             filter = layer.options.filter,
             selectedOption = select.options[select.selectedIndex],
@@ -376,9 +386,9 @@ L.Control.GroupedLayers = L.Control.extend({
         } else {
           this._applyFilter(layer);
         }
-        if (_.has(selectedOption, 'classname')) {
-          L.DomUtil.addClass(selectedOption.className);
-        }
+        
+        select.className = 'leaflet-control-layers-filter-select';
+        L.DomUtil.addClass(select, selectedOption.className);
       }
     }
 
